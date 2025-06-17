@@ -109,7 +109,7 @@ install_auto_start() {
 get_choice() {
     while true; do
         show_menu
-        read choice
+        read choice < /dev/tty
         
         case "$choice" in
             1|"")
@@ -132,7 +132,7 @@ get_choice() {
                 printf "\n"
                 show_error "Invalid choice"
                 printf "Press Enter to continue..."
-                read dummy
+                read dummy < /dev/tty
                 ;;
         esac
     done
