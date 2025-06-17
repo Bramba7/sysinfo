@@ -109,6 +109,38 @@ get_pkg_mgr() {
     fi
 }
 
+# Hostname detection with fallbacks
+get_hostname() {
+    # Try hostname command first
+    if command -v hostname &>/dev/null; then
+        local host=$(hostname 2>/dev/null)
+        [ -n "$host" ] && echo "$host" && return
+    fi
+    
+    # Fallback to /proc/sys/kernel/hostname
+    if [ -f /proc/sys/kernel/hostname ]; then
+        local host=$(cat /proc/sys/kernel/hostname 2>/dev/null)
+        [ -n "$host" ] && echo "$host" && return
+    fi
+    
+    # Fallback to /etc/hostname
+    if [ -f /etc/hostname ]; then
+        local host=$(cat /etc/hostname 2>/dev/null)
+        [ -n "$host" ] && echo "$host" && return
+    fi
+    
+    # Fallback to uname
+    if command -v uname &>/dev/null; then
+        local host=$(uname -n 2>/dev/null)
+        [ -n "$host" ] && echo "$host" && return
+    fi
+    
+    # Last resort - check HOSTNAME environment variable
+    [ -n "$HOSTNAME" ] && echo "$HOSTNAME" && return
+    
+    echo "unknown"
+}
+
 # Local IP detection
 get_local_ip() {
     if command -v ip &>/dev/null; then
@@ -164,7 +196,7 @@ get_timezone() {
 echo ""
 echo -e "${WHITE}$(grep '^NAME=' /etc/os-release | cut -d= -f2 | tr -d '"') - $(get_container)${NC}"
 echo -e "    ${YELLOW}🖥️${NC}  ${ORANGE}Version:${NC} ${BRIGHT_GREEN}$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')${NC}"
-echo -e "    ${YELLOW}🏠${NC}  ${ORANGE}Hostname:${NC} ${BRIGHT_GREEN}$(hostname)${NC}"
+echo -e "    ${YELLOW}🏠${NC}  ${ORANGE}Hostname:${NC} ${BRIGHT_GREEN}$(get_hostname)${NC}"
 echo -e "    ${YELLOW}👤${NC}  ${ORANGE}User:${NC} ${BRIGHT_GREEN}$(whoami)${NC}"
 echo -e "    ${YELLOW}📦${NC}  ${ORANGE}Package:${NC} ${BRIGHT_GREEN}$(get_pkg_mgr)${NC}"
 echo -e "    ${YELLOW}⚙️${NC}  ${ORANGE}Services:${NC} ${BRIGHT_GREEN}$(get_init_system)${NC}"
