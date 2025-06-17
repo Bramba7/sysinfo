@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # /etc/profile.d/01-system-info.sh
 
 # For zsh users - add to ~/.zshrc:
@@ -6,7 +6,10 @@
 
 
 # Show for interactive shells or if TERM is set (Docker compatibility)
-[[ $- != *i* ]] && [[ -z "$TERM" ]] && return
+case "$-" in
+    *i*) ;;
+    *) [ -z "$TERM" ] && return ;;
+esac
 
 # Colors (only used ones)
 YELLOW='\033[38;2;215;153;33m'
@@ -18,10 +21,51 @@ NC='\033[0m'
 
 # Container/environment detection
 get_container() {
+    # Check for Docker first
     [ -f /.dockerenv ] && echo "Docker" && return
+    
+    # Check for systemd-nspawn
     [ -n "${container}" ] && echo "systemd-nspawn" && return
-    grep -q "lxc" /proc/1/cgroup 2>/dev/null && echo "LXC" && return
     [ -f /run/systemd/container ] && cat /run/systemd/container 2>/dev/null && return
+    
+    # Check for LXC - multiple methods
+    # Method 1: Check /proc/1/environ for container=lxc
+    if [ -f /proc/1/environ ]; then
+        if grep -q "container=lxc" /proc/1/environ 2>/dev/null; then
+            echo "LXC" && return
+        fi
+    fi
+    
+    # Method 2: Check /proc/1/cgroup for lxc
+    if [ -f /proc/1/cgroup ]; then
+        if grep -q "/lxc/" /proc/1/cgroup 2>/dev/null; then
+            echo "LXC" && return
+        fi
+    fi
+    
+    # Method 3: Check for LXC-specific files
+    [ -f /proc/self/cgroup ] && grep -q "/lxc/" /proc/self/cgroup 2>/dev/null && echo "LXC" && return
+    
+    # Method 4: Check for LXC environment variables
+    [ -n "$LXC_NAME" ] && echo "LXC" && return
+    
+    # Method 5: Check systemd for LXC
+    if [ -f /run/systemd/container ]; then
+        local container_type=$(cat /run/systemd/container 2>/dev/null)
+        [ "$container_type" = "lxc" ] && echo "LXC" && return
+    fi
+    
+    # Method 6: Check for virtualization detection
+    if command -v systemd-detect-virt >/dev/null 2>&1; then
+        local virt=$(systemd-detect-virt 2>/dev/null)
+        case "$virt" in
+            lxc*) echo "LXC" && return ;;
+            docker) echo "Docker" && return ;;
+            systemd-nspawn) echo "systemd-nspawn" && return ;;
+        esac
+    fi
+    
+    # Default fallback
     echo "Bare Metal"
 }
 
