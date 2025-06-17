@@ -72,18 +72,18 @@ get_container() {
 # Init system detection
 get_init_system() {
     # Check if systemctl exists and works
-    if command -v systemctl &>/dev/null && systemctl --version &>/dev/null 2>&1; then
+    if command -v systemctl >/dev/null 2>&1 && systemctl --version >/dev/null 2>&1; then
         echo "systemctl ✓"
         return
     fi
     
     # Check for other init systems
-    if [ -f /sbin/openrc ] || command -v rc-service &>/dev/null; then
+    if [ -f /sbin/openrc ] || command -v rc-service >/dev/null 2>&1; then
         echo "openrc"
         return
     fi
     
-    if command -v service &>/dev/null; then
+    if command -v service >/dev/null 2>&1; then
         echo "service"
         return
     fi
@@ -108,26 +108,26 @@ get_init_system() {
 
 get_pkg_mgr() {
     # Test both existence AND functionality in one go
-    command -v apt &>/dev/null && apt --version &>/dev/null && echo "apt ✓" && return
-    command -v dnf &>/dev/null && dnf --version &>/dev/null && echo "dnf ✓" && return
-    command -v yum &>/dev/null && yum --version &>/dev/null && echo "yum ✓" && return
-    command -v zypper &>/dev/null && zypper --version &>/dev/null && echo "zypper ✓" && return
-    command -v pacman &>/dev/null && pacman --version &>/dev/null && echo "pacman ✓" && return
-    command -v apk &>/dev/null && apk --version &>/dev/null && echo "apk ✓" && return
-    command -v emerge &>/dev/null && emerge --version &>/dev/null && echo "emerge ✓" && return
-    command -v xbps-install &>/dev/null && xbps-install --version &>/dev/null && echo "xbps ✓" && return
-    command -v nix-env &>/dev/null && nix-env --version &>/dev/null && echo "nix ✓" && return
-    command -v eopkg &>/dev/null && eopkg --version &>/dev/null && echo "eopkg ✓" && return
-    command -v swupd &>/dev/null && swupd --version &>/dev/null && echo "swupd ✓" && return
-    command -v installpkg &>/dev/null && echo "installpkg ✓" && return
-    command -v urpmi &>/dev/null && urpmi --version &>/dev/null && echo "urpmi ✓" && return
-    command -v pisi &>/dev/null && pisi --version &>/dev/null && echo "pisi ✓" && return
-    command -v cast &>/dev/null && echo "cast ✓" && return
-    command -v prt-get &>/dev/null && echo "prt-get ✓" && return
-    command -v Compile &>/dev/null && echo "Compile ✓" && return
-    command -v tce-load &>/dev/null && echo "tce ✓" && return
-    command -v petget &>/dev/null && echo "petget ✓" && return
-    command -v guix &>/dev/null && guix --version &>/dev/null && echo "guix ✓" && return
+    command -v apt >/dev/null 2>&1 && apt --version >/dev/null 2>&1 && echo "apt ✓" && return
+    command -v dnf >/dev/null 2>&1 && dnf --version >/dev/null 2>&1 && echo "dnf ✓" && return
+    command -v yum >/dev/null 2>&1 && yum --version >/dev/null 2>&1 && echo "yum ✓" && return
+    command -v zypper >/dev/null 2>&1 && zypper --version >/dev/null 2>&1 && echo "zypper ✓" && return
+    command -v pacman >/dev/null 2>&1 && pacman --version >/dev/null 2>&1 && echo "pacman ✓" && return
+    command -v apk >/dev/null 2>&1 && apk --version >/dev/null 2>&1 && echo "apk ✓" && return
+    command -v emerge >/dev/null 2>&1 && emerge --version >/dev/null 2>&1 && echo "emerge ✓" && return
+    command -v xbps-install >/dev/null 2>&1 && xbps-install --version >/dev/null 2>&1 && echo "xbps ✓" && return
+    command -v nix-env >/dev/null 2>&1 && nix-env --version >/dev/null 2>&1 && echo "nix ✓" && return
+    command -v eopkg >/dev/null 2>&1 && eopkg --version >/dev/null 2>&1 && echo "eopkg ✓" && return
+    command -v swupd >/dev/null 2>&1 && swupd --version >/dev/null 2>&1 && echo "swupd ✓" && return
+    command -v installpkg >/dev/null 2>&1 && echo "installpkg ✓" && return
+    command -v urpmi >/dev/null 2>&1 && urpmi --version >/dev/null 2>&1 && echo "urpmi ✓" && return
+    command -v pisi >/dev/null 2>&1 && pisi --version >/dev/null 2>&1 && echo "pisi ✓" && return
+    command -v cast >/dev/null 2>&1 && echo "cast ✓" && return
+    command -v prt-get >/dev/null 2>&1 && echo "prt-get ✓" && return
+    command -v Compile >/dev/null 2>&1 && echo "Compile ✓" && return
+    command -v tce-load >/dev/null 2>&1 && echo "tce ✓" && return
+    command -v petget >/dev/null 2>&1 && echo "petget ✓" && return
+    command -v guix >/dev/null 2>&1 && guix --version >/dev/null 2>&1 && echo "guix ✓" && return
     
     # Fallback: detect by distro but mark as broken since commands failed
     if [ -f /etc/os-release ]; then
@@ -252,14 +252,14 @@ get_timezone() {
 }
 
 # Display system info
-echo ""
-echo -e "${WHITE}$(grep '^NAME=' /etc/os-release | cut -d= -f2 | tr -d '"') - $(get_container)${NC}"
-echo -e "    ${YELLOW}🖥️${NC}  ${ORANGE}Version:${NC} ${BRIGHT_GREEN}$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')${NC}"
-echo -e "    ${YELLOW}🏠${NC}  ${ORANGE}Hostname:${NC} ${BRIGHT_GREEN}$(get_hostname)${NC}"
-echo -e "    ${YELLOW}👤${NC}  ${ORANGE}User:${NC} ${BRIGHT_GREEN}$(whoami)${NC}"
-echo -e "    ${YELLOW}📦${NC}  ${ORANGE}Package:${NC} ${BRIGHT_GREEN}$(get_pkg_mgr)${NC}"
-echo -e "    ${YELLOW}⚙️${NC}  ${ORANGE}Services:${NC} ${BRIGHT_GREEN}$(get_init_system)${NC}"
-echo -e "    ${YELLOW}🌍${NC}  ${ORANGE}Timezone:${NC} ${BRIGHT_GREEN}$(get_timezone)${NC}"
-echo -e "    ${YELLOW}💡${NC}  ${ORANGE}Local IP:${NC} ${BRIGHT_GREEN}$(get_local_ip)${NC}"
-echo -e "    ${YELLOW}🌐${NC}  ${ORANGE}Public IP:${NC} ${BRIGHT_GREEN}$(get_public_ip)${NC}"
-echo ""
+printf "\n"
+printf "${WHITE}%s - %s${NC}\n" "$(grep '^NAME=' /etc/os-release | cut -d= -f2 | tr -d '"')" "$(get_container)"
+printf "    ${YELLOW}🖥️${NC}  ${ORANGE}Version:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')"
+printf "    ${YELLOW}🏠${NC}  ${ORANGE}Hostname:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_hostname)"
+printf "    ${YELLOW}👤${NC}  ${ORANGE}User:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(whoami)"
+printf "    ${YELLOW}📦${NC}  ${ORANGE}Package:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_pkg_mgr)"
+printf "    ${YELLOW}⚙️${NC}  ${ORANGE}Services:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_init_system)"
+printf "    ${YELLOW}🌍${NC}  ${ORANGE}Timezone:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_timezone)"
+printf "    ${YELLOW}💡${NC}  ${ORANGE}Local IP:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_local_ip)"
+printf "    ${YELLOW}🌐${NC}  ${ORANGE}Public IP:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_public_ip)"
+printf "\n"
