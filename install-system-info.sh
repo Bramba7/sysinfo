@@ -109,37 +109,52 @@ install_quick_test() {
                 return
             fi
             
-            # Check shebang
-            local first_line=$(head -n1 "$TEMP_PATH" 2>/dev/null)
-            if [ "${first_line#\#!}" = "$first_line" ]; then
-                show_error "Downloaded file missing shebang"
-                rm -f "$TEMP_PATH" 2>/dev/null
-                return
-            fi
+            # Debug: show first few lines
+            printf "First line of script: "
+            head -n1 "$TEMP_PATH" 2>/dev/null || printf "Cannot read file"
+            printf "\n"
+            
+            # Check what shells are available
+            printf "Available shells: "
+            [ -x /bin/sh ] && printf "sh "
+            [ -x /bin/bash ] && printf "bash "
+            [ -x /bin/dash ] && printf "dash "
+            printf "\n"
             
             # Make executable
             chmod +x "$TEMP_PATH" 2>/dev/null
             
-            # Verify it's executable
-            if [ ! -x "$TEMP_PATH" ]; then
-                show_error "Cannot make script executable"
-                rm -f "$TEMP_PATH" 2>/dev/null
-                return
-            fi
-            
             printf "\n"
-            # Try to run with explicit shell if direct execution fails
-            if ! "$TEMP_PATH" 2>/dev/null; then
-                printf "Trying with explicit shell...\n"
-                if command -v bash >/dev/null 2>&1; then
-                    bash "$TEMP_PATH"
-                elif command -v sh >/dev/null 2>&1; then
-                    sh "$TEMP_PATH"
+            # Try different execution methods
+            printf "Trying direct execution...\n"
+            if "$TEMP_PATH" 2>/tmp/exec_error; then
+                printf "Success!\n"
+            else
+                printf "Direct execution failed. Error: "
+                cat /tmp/exec_error 2>/dev/null || printf "No error details"
+                printf "\n"
+                
+                printf "Trying with sh...\n"
+                if sh "$TEMP_PATH" 2>/tmp/sh_error; then
+                    printf "Success with sh!\n"
+                elif [ -x /bin/bash ]; then
+                    printf "sh failed, trying bash...\n"
+                    if bash "$TEMP_PATH" 2>/tmp/bash_error; then
+                        printf "Success with bash!\n"
+                    else
+                        printf "bash also failed. Error: "
+                        cat /tmp/bash_error 2>/dev/null || printf "No error details"
+                        printf "\n"
+                    fi
                 else
-                    show_error "No shell available to run script"
+                    printf "sh failed. Error: "
+                    cat /tmp/sh_error 2>/dev/null || printf "No error details"
+                    printf "\n"
                 fi
             fi
-            rm -f "$TEMP_PATH" 2>/dev/null
+            
+            # Cleanup
+            rm -f "$TEMP_PATH" /tmp/exec_error /tmp/sh_error /tmp/bash_error 2>/dev/null
         else
             show_error "Downloaded file not found"
         fi
