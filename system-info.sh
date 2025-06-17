@@ -61,6 +61,7 @@ get_init_system() {
         echo "unknown"
     fi
 }
+
 get_pkg_mgr() {
     # Test both existence AND functionality in one go
     command -v apt &>/dev/null && apt --version &>/dev/null && echo "apt ✓" && return
@@ -124,15 +125,31 @@ get_local_ip() {
     echo "iproute2 needed"
 }
 
-# Public IP detection
+# Public IP detection with curl and wget fallback
 get_public_ip() {
-    command -v curl &>/dev/null || { echo "curl needed"; return; }
+    local ip=""
     
-    local ip=$(timeout 2 curl -s https://ipinfo.io/ip 2>/dev/null ||
-               timeout 2 curl -s https://ipconfig.io 2>/dev/null ||
-               timeout 2 curl -s https://api.ipify.org 2>/dev/null)
+    # Try curl first
+    if command -v curl &>/dev/null; then
+        ip=$(timeout 2 curl -s https://ipinfo.io/ip 2>/dev/null ||
+             timeout 2 curl -s https://ipconfig.io 2>/dev/null ||
+             timeout 2 curl -s https://api.ipify.org 2>/dev/null)
+    # Fallback to wget if curl is not available
+    elif command -v wget &>/dev/null; then
+        ip=$(timeout 2 wget -qO- https://ipinfo.io/ip 2>/dev/null ||
+             timeout 2 wget -qO- https://ipconfig.io 2>/dev/null ||
+             timeout 2 wget -qO- https://api.ipify.org 2>/dev/null)
+    else
+        echo "curl/wget needed"
+        return
+    fi
     
-    [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && echo "$ip" || echo "curl needed"
+    # Validate IP format
+    if [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "$ip"
+    else
+        echo "curl/wget needed"
+    fi
 }
 
 # Timezone detection
