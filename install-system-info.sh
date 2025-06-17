@@ -35,9 +35,27 @@ check_privileges() {
     fi
 }
 
-# Download script
+# Download script with curl/wget fallback
 download_script() {
-    curl -sSL "$REPO_URL" -o "$1" 2>/dev/null
+    local output_path="$1"
+    
+    # Try curl first
+    if command -v curl >/dev/null 2>&1; then
+        if curl -sSL "$REPO_URL" -o "$output_path" 2>/dev/null; then
+            return 0
+        fi
+    fi
+    
+    # Fallback to wget
+    if command -v wget >/dev/null 2>&1; then
+        if wget -qO "$output_path" "$REPO_URL" 2>/dev/null; then
+            return 0
+        fi
+    fi
+    
+    # Neither worked
+    show_error "Neither curl nor wget is available or download failed"
+    return 1
 }
 
 # Main menu
