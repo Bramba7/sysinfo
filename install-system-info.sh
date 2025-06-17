@@ -45,7 +45,6 @@ download_script() {
     
     # Try curl first
     if command -v curl >/dev/null 2>&1; then
-        printf "Downloading with curl...\n"
         if curl -sSL "$REPO_URL" -o "$output_path" 2>/dev/null; then
             # Verify file was created and has content
             if [ -f "$output_path" ] && [ -s "$output_path" ]; then
@@ -58,7 +57,6 @@ download_script() {
     
     # Fallback to wget if curl failed
     if [ "$success" -eq 0 ] && command -v wget >/dev/null 2>&1; then
-        printf "Downloading with wget...\n"
         if wget -qO "$output_path" "$REPO_URL" 2>/dev/null; then
             # Verify file was created and has content
             if [ -f "$output_path" ] && [ -s "$output_path" ]; then
@@ -71,7 +69,6 @@ download_script() {
     
     # Check if download was successful
     if [ "$success" -eq 1 ]; then
-        printf "Download successful\n"
         return 0
     else
         show_error "Download failed - check internet connection"
@@ -81,7 +78,6 @@ download_script() {
 
 # Main menu
 show_menu() {
-    clear
     printf "\n"
     printf "$WHITE%s$NC\n" "System Info Script Installer"
     printf "$GRAY%s$NC\n" "────────────────────────────────────────"
@@ -142,44 +138,20 @@ install_auto_start() {
     printf "\n"
     check_privileges
     
-    printf "Installing for auto-start...\n"
     if download_script "/tmp/profile-temp"; then
-        if [ -f "/tmp/profile-temp" ]; then
-            # Verify file content and shebang
-            if [ ! -s "/tmp/profile-temp" ]; then
-                show_error "Downloaded file is empty"
-                rm -f "/tmp/profile-temp" 2>/dev/null
-                return
-            fi
-            
-            local first_line=$(head -n1 "/tmp/profile-temp" 2>/dev/null)
-            if [ "${first_line#\#!}" = "$first_line" ]; then
-                show_error "Downloaded file missing shebang"
-                rm -f "/tmp/profile-temp" 2>/dev/null
-                return
-            fi
-            
+        if [ -f "/tmp/profile-temp" ] && [ -s "/tmp/profile-temp" ]; then
             if ${SUDO} mv "/tmp/profile-temp" "$PROFILE_PATH" 2>/dev/null && ${SUDO} chmod +x "$PROFILE_PATH" 2>/dev/null; then
                 show_success "Installed to $PROFILE_PATH"
                 printf "\n"
-                if [ -x "$PROFILE_PATH" ]; then
-                    if ! "$PROFILE_PATH" 2>/dev/null; then
-                        printf "Trying with explicit shell...\n"
-                        if command -v bash >/dev/null 2>&1; then
-                            bash "$PROFILE_PATH"
-                        elif command -v sh >/dev/null 2>&1; then
-                            sh "$PROFILE_PATH"
-                        fi
-                    fi
-                else
-                    show_error "Installed file is not executable"
+                if ! "$PROFILE_PATH" 2>/dev/null; then
+                    sh "$PROFILE_PATH" 2>/dev/null || show_error "Script execution failed"
                 fi
             else
-                show_error "Installation failed - could not move/set permissions"
+                show_error "Installation failed"
                 rm -f "/tmp/profile-temp" 2>/dev/null
             fi
         else
-            show_error "Downloaded file not found"
+            show_error "Download failed"
         fi
     else
         show_error "Download failed"
