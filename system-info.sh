@@ -144,24 +144,29 @@ get_hostname() {
 # Local IP detection
 get_local_ip() {
     if command -v ip &>/dev/null; then
-        local ip=$(ip -4 addr show eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1 | head -n1)
-        [ -z "$ip" ] && ip=$(ip route get 1 2>/dev/null | awk '{print $7}' | head -n1)
+        # Try eth0 first
+        local ip=$(ip -4 addr show eth0 2>/dev/null | grep 'inet ' | head -n1 | sed 's/.*inet \([^/]*\).*/\1/')
+        [ -n "$ip" ] && echo "$ip" && return
+        
+        # Try default route
+        ip=$(ip route get 1 2>/dev/null | grep -o 'src [0-9.]*' | cut -d' ' -f2 | head -n1)
+        [ -n "$ip" ] && echo "$ip" && return
+        
+        # Try any interface with inet
+        ip=$(ip -4 addr show 2>/dev/null | grep 'inet ' | grep -v '127.0.0.1' | head -n1 | sed 's/.*inet \([^/]*\).*/\1/')
         [ -n "$ip" ] && echo "$ip" && return
     fi
     
     # Try hostname -i only if hostname command exists
     if command -v hostname &>/dev/null; then
-        local ip=$(hostname -i 2>/dev/null | awk '{print $1}')
+        local ip=$(hostname -i 2>/dev/null | cut -d' ' -f1)
         [ -n "$ip" ] && [ "$ip" != "127.0.0.1" ] && echo "$ip" && return
     fi
     
-    # Fallback: try to get IP from /proc/net/route
-    if [ -f /proc/net/route ]; then
-        local ip=$(awk '/^[^I]/ { if ($2 == "00000000") print $1 }' /proc/net/route 2>/dev/null | head -n1)
-        if [ -n "$ip" ] && command -v ip &>/dev/null; then
-            ip=$(ip -4 addr show "$ip" 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1 | head -n1)
-            [ -n "$ip" ] && echo "$ip" && return
-        fi
+    # Fallback: check /proc/net/fib_trie for local IPs
+    if [ -f /proc/net/fib_trie ]; then
+        local ip=$(grep -E '^\s+\|--\s+[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' /proc/net/fib_trie 2>/dev/null | grep -v '127.0.0.1' | head -n1 | sed 's/.*-- \([0-9.]*\).*/\1/')
+        [ -n "$ip" ] && echo "$ip" && return
     fi
     
     echo "iproute2 needed"
