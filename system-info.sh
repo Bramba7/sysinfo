@@ -149,10 +149,20 @@ get_local_ip() {
         [ -n "$ip" ] && echo "$ip" && return
     fi
     
-    command -v hostname &>/dev/null && {
+    # Try hostname -i only if hostname command exists
+    if command -v hostname &>/dev/null; then
         local ip=$(hostname -i 2>/dev/null | awk '{print $1}')
         [ -n "$ip" ] && [ "$ip" != "127.0.0.1" ] && echo "$ip" && return
-    }
+    fi
+    
+    # Fallback: try to get IP from /proc/net/route
+    if [ -f /proc/net/route ]; then
+        local ip=$(awk '/^[^I]/ { if ($2 == "00000000") print $1 }' /proc/net/route 2>/dev/null | head -n1)
+        if [ -n "$ip" ] && command -v ip &>/dev/null; then
+            ip=$(ip -4 addr show "$ip" 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1 | head -n1)
+            [ -n "$ip" ] && echo "$ip" && return
+        fi
+    fi
     
     echo "iproute2 needed"
 }
