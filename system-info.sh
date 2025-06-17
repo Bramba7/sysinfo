@@ -245,7 +245,7 @@ get_local_ip() {
         fi
     fi
     
-    echo "missing iproute2"
+    echo "iproute2"
 }
 
 # Public IP Detection
