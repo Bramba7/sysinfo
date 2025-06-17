@@ -30,31 +30,91 @@ safe_read() {
     [ -f "$1" ] && cat "$1" 2>/dev/null
 }
 
-# Container/Environment Detection
-get_container() {
-    # Docker detection
+# Environment Detection (Containers + VMs)
+get_environment() {
+    # Container detection first (highest priority)
     [ -f /.dockerenv ] && echo "Docker" && return
-    
-    # systemd-nspawn detection
     [ -n "${container}" ] && echo "systemd-nspawn" && return
     
-    # LXC detection (multiple methods)
+    # LXC detection
     if [ -f /proc/1/environ ] && grep -q "container=lxc" /proc/1/environ 2>/dev/null; then
         echo "LXC" && return
     fi
-    
     if [ -f /proc/1/cgroup ] && grep -q "/lxc/" /proc/1/cgroup 2>/dev/null; then
         echo "LXC" && return
     fi
     
-    # systemd-detect-virt if available
+    # VM detection using systemd-detect-virt (most reliable)
     if cmd_available systemd-detect-virt; then
-        case "$(systemd-detect-virt 2>/dev/null)" in
+        local virt_type=$(systemd-detect-virt 2>/dev/null)
+        case "$virt_type" in
+            # Containers
             lxc*) echo "LXC" && return ;;
             docker) echo "Docker" && return ;;
             systemd-nspawn) echo "systemd-nspawn" && return ;;
+            # VMs
+            kvm|qemu) echo "VM (KVM/QEMU)" && return ;;
+            vmware) echo "VM (VMware)" && return ;;
+            virtualbox) echo "VM (VirtualBox)" && return ;;
+            xen) echo "VM (Xen)" && return ;;
+            microsoft) echo "VM (Hyper-V)" && return ;;
+            oracle) echo "VM (VirtualBox)" && return ;;
+            *) [ "$virt_type" != "none" ] && echo "VM ($virt_type)" && return ;;
         esac
     fi
+    
+    # Manual VM detection via DMI/SMBIOS
+    local dmi_vendor=$(safe_read /sys/class/dmi/id/sys_vendor)
+    local dmi_product=$(safe_read /sys/class/dmi/id/product_name)
+    local dmi_version=$(safe_read /sys/class/dmi/id/product_version)
+    
+    # Check for common VM indicators
+    case "$dmi_vendor" in
+        *QEMU*) echo "VM (QEMU)" && return ;;
+        *VMware*) echo "VM (VMware)" && return ;;
+        *VirtualBox*) echo "VM (VirtualBox)" && return ;;
+        *Microsoft*) 
+            case "$dmi_product" in
+                *Virtual*) echo "VM (Hyper-V)" && return ;;
+            esac
+            ;;
+        *Xen*) echo "VM (Xen)" && return ;;
+        *innotek*) echo "VM (VirtualBox)" && return ;;
+    esac
+    
+    case "$dmi_product" in
+        *KVM*) echo "VM (KVM)" && return ;;
+        *QEMU*) echo "VM (QEMU)" && return ;;
+        *VMware*) echo "VM (VMware)" && return ;;
+        *VirtualBox*) echo "VM (VirtualBox)" && return ;;
+        *Virtual*Machine*) echo "VM (Hyper-V)" && return ;;
+    esac
+    
+    # Check CPU flags for hypervisor bit
+    if [ -f /proc/cpuinfo ] && grep -q "^flags.*hypervisor" /proc/cpuinfo 2>/dev/null; then
+        echo "VM (Unknown)" && return
+    fi
+    
+    # Check for virtualization-specific devices/modules
+    if [ -d /proc/xen ]; then
+        echo "VM (Xen)" && return
+    fi
+    
+    # Check for VM-specific kernel modules
+    if [ -f /proc/modules ]; then
+        if grep -q "^vmw_" /proc/modules 2>/dev/null; then
+            echo "VM (VMware)" && return
+        fi
+        if grep -q "^vboxguest\|^vboxsf" /proc/modules 2>/dev/null; then
+            echo "VM (VirtualBox)" && return
+        fi
+    fi
+    
+    # Final fallback - check BIOS date for VM indicators
+    local bios_date=$(safe_read /sys/class/dmi/id/bios_date)
+    case "$bios_date" in
+        *01/01/2011*|*04/01/2014*) echo "VM (QEMU)" && return ;;
+    esac
     
     echo "Bare Metal"
 }
@@ -244,7 +304,7 @@ get_os_version() {
 # Main Display Function
 display_system_info() {
     printf "\n"
-    printf "${WHITE}%s - %s${NC}\n" "$(get_os_name)" "$(get_container)"
+    printf "${WHITE}%s - %s${NC}\n" "$(get_os_name)" "$(get_environment)"
     printf "    ${YELLOW}🖥️${NC}  ${ORANGE}Version:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_os_version)"
     printf "    ${YELLOW}🏠${NC}  ${ORANGE}Hostname:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_hostname)"
     printf "    ${YELLOW}👤${NC}  ${ORANGE}User:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(whoami)"
