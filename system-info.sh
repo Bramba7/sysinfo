@@ -156,7 +156,7 @@ get_pkg_mgr() {
 # Hostname detection with fallbacks
 get_hostname() {
     # Try hostname command first
-    if command -v hostname &>/dev/null; then
+    if command -v hostname >/dev/null 2>&1; then
         local host=$(hostname 2>/dev/null)
         [ -n "$host" ] && echo "$host" && return
     fi
@@ -174,7 +174,7 @@ get_hostname() {
     fi
     
     # Fallback to uname
-    if command -v uname &>/dev/null; then
+    if command -v uname >/dev/null 2>&1; then
         local host=$(uname -n 2>/dev/null)
         [ -n "$host" ] && echo "$host" && return
     fi
@@ -187,7 +187,7 @@ get_hostname() {
 
 # Local IP detection
 get_local_ip() {
-    if command -v ip &>/dev/null; then
+    if command -v ip >/dev/null 2>&1; then
         # Try eth0 first
         local ip=$(ip -4 addr show eth0 2>/dev/null | grep 'inet ' | head -n1 | sed 's/.*inet \([^/]*\).*/\1/')
         [ -n "$ip" ] && echo "$ip" && return
@@ -202,7 +202,7 @@ get_local_ip() {
     fi
     
     # Try hostname -i only if hostname command exists
-    if command -v hostname &>/dev/null; then
+    if command -v hostname >/dev/null 2>&1; then
         local ip=$(hostname -i 2>/dev/null | cut -d' ' -f1)
         [ -n "$ip" ] && [ "$ip" != "127.0.0.1" ] && echo "$ip" && return
     fi
@@ -221,12 +221,12 @@ get_public_ip() {
     local ip=""
     
     # Try curl first
-    if command -v curl &>/dev/null; then
+    if command -v curl >/dev/null 2>&1; then
         ip=$(timeout 2 curl -s https://ipinfo.io/ip 2>/dev/null ||
              timeout 2 curl -s https://ipconfig.io 2>/dev/null ||
              timeout 2 curl -s https://api.ipify.org 2>/dev/null)
     # Fallback to wget if curl is not available
-    elif command -v wget &>/dev/null; then
+    elif command -v wget >/dev/null 2>&1; then
         ip=$(timeout 2 wget -qO- https://ipinfo.io/ip 2>/dev/null ||
              timeout 2 wget -qO- https://ipconfig.io 2>/dev/null ||
              timeout 2 wget -qO- https://api.ipify.org 2>/dev/null)
@@ -236,7 +236,28 @@ get_public_ip() {
     fi
     
     # Validate IP format
-    if [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    if echo "$ip" | grep -q '^[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}
+
+# Timezone detection
+get_timezone() {
+    [ -f /etc/timezone ] && cat /etc/timezone && return
+    [ -L /etc/localtime ] && readlink /etc/localtime | sed 's|.*/zoneinfo/||' && return
+    command -v timedatectl &>/dev/null && timedatectl show --property=Timezone --value 2>/dev/null && return
+    echo "${TZ:-UTC}"
+}
+
+# Display system info
+printf "\n"
+printf "${WHITE}%s - %s${NC}\n" "$(grep '^NAME=' /etc/os-release | cut -d= -f2 | tr -d '"')" "$(get_container)"
+printf "    ${YELLOW}🖥️${NC}  ${ORANGE}Version:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')"
+printf "    ${YELLOW}🏠${NC}  ${ORANGE}Hostname:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_hostname)"
+printf "    ${YELLOW}👤${NC}  ${ORANGE}User:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(whoami)"
+printf "    ${YELLOW}📦${NC}  ${ORANGE}Package:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_pkg_mgr)"
+printf "    ${YELLOW}⚙️${NC}  ${ORANGE}Services:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_init_system)"
+printf "    ${YELLOW}🌍${NC}  ${ORANGE}Timezone:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_timezone)"
+printf "    ${YELLOW}💡${NC}  ${ORANGE}Local IP:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_local_ip)"
+printf "    ${YELLOW}🌐${NC}  ${ORANGE}Public IP:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_public_ip)"
+printf "\n"; then
         echo "$ip"
     else
         echo "curl/wget needed"
