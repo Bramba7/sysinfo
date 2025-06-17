@@ -102,12 +102,42 @@ install_quick_test() {
     
     if download_script "$TEMP_PATH"; then
         if [ -f "$TEMP_PATH" ]; then
+            # Check if file has content
+            if [ ! -s "$TEMP_PATH" ]; then
+                show_error "Downloaded file is empty"
+                rm -f "$TEMP_PATH" 2>/dev/null
+                return
+            fi
+            
+            # Check shebang
+            local first_line=$(head -n1 "$TEMP_PATH" 2>/dev/null)
+            if [ "${first_line#\#!}" = "$first_line" ]; then
+                show_error "Downloaded file missing shebang"
+                rm -f "$TEMP_PATH" 2>/dev/null
+                return
+            fi
+            
+            # Make executable
             chmod +x "$TEMP_PATH" 2>/dev/null
+            
+            # Verify it's executable
+            if [ ! -x "$TEMP_PATH" ]; then
+                show_error "Cannot make script executable"
+                rm -f "$TEMP_PATH" 2>/dev/null
+                return
+            fi
+            
             printf "\n"
-            if [ -x "$TEMP_PATH" ]; then
-                "$TEMP_PATH"
-            else
-                show_error "Script is not executable"
+            # Try to run with explicit shell if direct execution fails
+            if ! "$TEMP_PATH" 2>/dev/null; then
+                printf "Trying with explicit shell...\n"
+                if command -v bash >/dev/null 2>&1; then
+                    bash "$TEMP_PATH"
+                elif command -v sh >/dev/null 2>&1; then
+                    sh "$TEMP_PATH"
+                else
+                    show_error "No shell available to run script"
+                fi
             fi
             rm -f "$TEMP_PATH" 2>/dev/null
         else
@@ -125,11 +155,32 @@ install_command_tool() {
     printf "Installing as command tool...\n"
     if download_script "/tmp/sysinfo-temp"; then
         if [ -f "/tmp/sysinfo-temp" ]; then
+            # Verify file content and shebang
+            if [ ! -s "/tmp/sysinfo-temp" ]; then
+                show_error "Downloaded file is empty"
+                rm -f "/tmp/sysinfo-temp" 2>/dev/null
+                return
+            fi
+            
+            local first_line=$(head -n1 "/tmp/sysinfo-temp" 2>/dev/null)
+            if [ "${first_line#\#!}" = "$first_line" ]; then
+                show_error "Downloaded file missing shebang"
+                rm -f "/tmp/sysinfo-temp" 2>/dev/null
+                return
+            fi
+            
             if ${SUDO} mv "/tmp/sysinfo-temp" "$BIN_PATH" 2>/dev/null && ${SUDO} chmod +x "$BIN_PATH" 2>/dev/null; then
                 show_success "Installed as 'sysinfo' command"
                 printf "\n"
                 if [ -x "$BIN_PATH" ]; then
-                    "$BIN_PATH"
+                    if ! "$BIN_PATH" 2>/dev/null; then
+                        printf "Trying with explicit shell...\n"
+                        if command -v bash >/dev/null 2>&1; then
+                            bash "$BIN_PATH"
+                        elif command -v sh >/dev/null 2>&1; then
+                            sh "$BIN_PATH"
+                        fi
+                    fi
                 else
                     show_error "Installed file is not executable"
                 fi
@@ -152,11 +203,32 @@ install_auto_start() {
     printf "Installing for auto-start...\n"
     if download_script "/tmp/profile-temp"; then
         if [ -f "/tmp/profile-temp" ]; then
+            # Verify file content and shebang
+            if [ ! -s "/tmp/profile-temp" ]; then
+                show_error "Downloaded file is empty"
+                rm -f "/tmp/profile-temp" 2>/dev/null
+                return
+            fi
+            
+            local first_line=$(head -n1 "/tmp/profile-temp" 2>/dev/null)
+            if [ "${first_line#\#!}" = "$first_line" ]; then
+                show_error "Downloaded file missing shebang"
+                rm -f "/tmp/profile-temp" 2>/dev/null
+                return
+            fi
+            
             if ${SUDO} mv "/tmp/profile-temp" "$PROFILE_PATH" 2>/dev/null && ${SUDO} chmod +x "$PROFILE_PATH" 2>/dev/null; then
                 show_success "Installed to $PROFILE_PATH"
                 printf "\n"
                 if [ -x "$PROFILE_PATH" ]; then
-                    "$PROFILE_PATH"
+                    if ! "$PROFILE_PATH" 2>/dev/null; then
+                        printf "Trying with explicit shell...\n"
+                        if command -v bash >/dev/null 2>&1; then
+                            bash "$PROFILE_PATH"
+                        elif command -v sh >/dev/null 2>&1; then
+                            sh "$PROFILE_PATH"
+                        fi
+                    fi
                 else
                     show_error "Installed file is not executable"
                 fi
