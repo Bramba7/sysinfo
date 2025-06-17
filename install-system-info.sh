@@ -98,65 +98,16 @@ show_menu() {
 # Installation functions
 install_quick_test() {
     printf "\n"
-    printf "Testing system info script...\n"
-    
     if download_script "$TEMP_PATH"; then
-        if [ -f "$TEMP_PATH" ]; then
-            # Check if file has content
-            if [ ! -s "$TEMP_PATH" ]; then
-                show_error "Downloaded file is empty"
-                rm -f "$TEMP_PATH" 2>/dev/null
-                return
-            fi
-            
-            # Debug: show first few lines
-            printf "First line of script: "
-            head -n1 "$TEMP_PATH" 2>/dev/null || printf "Cannot read file"
-            printf "\n"
-            
-            # Check what shells are available
-            printf "Available shells: "
-            [ -x /bin/sh ] && printf "sh "
-            [ -x /bin/bash ] && printf "bash "
-            [ -x /bin/dash ] && printf "dash "
-            printf "\n"
-            
-            # Make executable
+        if [ -f "$TEMP_PATH" ] && [ -s "$TEMP_PATH" ]; then
             chmod +x "$TEMP_PATH" 2>/dev/null
-            
             printf "\n"
-            # Try different execution methods
-            printf "Trying direct execution...\n"
-            if "$TEMP_PATH" 2>/tmp/exec_error; then
-                printf "Success!\n"
-            else
-                printf "Direct execution failed. Error: "
-                cat /tmp/exec_error 2>/dev/null || printf "No error details"
-                printf "\n"
-                
-                printf "Trying with sh...\n"
-                if sh "$TEMP_PATH" 2>/tmp/sh_error; then
-                    printf "Success with sh!\n"
-                elif [ -x /bin/bash ]; then
-                    printf "sh failed, trying bash...\n"
-                    if bash "$TEMP_PATH" 2>/tmp/bash_error; then
-                        printf "Success with bash!\n"
-                    else
-                        printf "bash also failed. Error: "
-                        cat /tmp/bash_error 2>/dev/null || printf "No error details"
-                        printf "\n"
-                    fi
-                else
-                    printf "sh failed. Error: "
-                    cat /tmp/sh_error 2>/dev/null || printf "No error details"
-                    printf "\n"
-                fi
+            if ! "$TEMP_PATH" 2>/dev/null; then
+                sh "$TEMP_PATH" 2>/dev/null || show_error "Script execution failed"
             fi
-            
-            # Cleanup
-            rm -f "$TEMP_PATH" /tmp/exec_error /tmp/sh_error /tmp/bash_error 2>/dev/null
+            rm -f "$TEMP_PATH" 2>/dev/null
         else
-            show_error "Downloaded file not found"
+            show_error "Download failed"
         fi
     else
         show_error "Download failed"
@@ -167,44 +118,20 @@ install_command_tool() {
     printf "\n"
     check_privileges
     
-    printf "Installing as command tool...\n"
     if download_script "/tmp/sysinfo-temp"; then
-        if [ -f "/tmp/sysinfo-temp" ]; then
-            # Verify file content and shebang
-            if [ ! -s "/tmp/sysinfo-temp" ]; then
-                show_error "Downloaded file is empty"
-                rm -f "/tmp/sysinfo-temp" 2>/dev/null
-                return
-            fi
-            
-            local first_line=$(head -n1 "/tmp/sysinfo-temp" 2>/dev/null)
-            if [ "${first_line#\#!}" = "$first_line" ]; then
-                show_error "Downloaded file missing shebang"
-                rm -f "/tmp/sysinfo-temp" 2>/dev/null
-                return
-            fi
-            
+        if [ -f "/tmp/sysinfo-temp" ] && [ -s "/tmp/sysinfo-temp" ]; then
             if ${SUDO} mv "/tmp/sysinfo-temp" "$BIN_PATH" 2>/dev/null && ${SUDO} chmod +x "$BIN_PATH" 2>/dev/null; then
                 show_success "Installed as 'sysinfo' command"
                 printf "\n"
-                if [ -x "$BIN_PATH" ]; then
-                    if ! "$BIN_PATH" 2>/dev/null; then
-                        printf "Trying with explicit shell...\n"
-                        if command -v bash >/dev/null 2>&1; then
-                            bash "$BIN_PATH"
-                        elif command -v sh >/dev/null 2>&1; then
-                            sh "$BIN_PATH"
-                        fi
-                    fi
-                else
-                    show_error "Installed file is not executable"
+                if ! "$BIN_PATH" 2>/dev/null; then
+                    sh "$BIN_PATH" 2>/dev/null || show_error "Script execution failed"
                 fi
             else
-                show_error "Installation failed - could not move/set permissions"
+                show_error "Installation failed"
                 rm -f "/tmp/sysinfo-temp" 2>/dev/null
             fi
         else
-            show_error "Downloaded file not found"
+            show_error "Download failed"
         fi
     else
         show_error "Download failed"
