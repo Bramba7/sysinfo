@@ -131,42 +131,57 @@ get_hostname() {
 
 # Package Manager Detection
 get_pkg_mgr() {
-    # Common package managers with their typical distributions
-    local pkg_managers="
-        apt:ubuntu,debian,mint,kali,pop,elementary
-        dnf:fedora,rhel,centos,rocky,alma
-        pacman:arch,manjaro,endeavouros,artix
-        zypper:opensuse,sles
-        apk:alpine,postmarket
-        emerge:gentoo,funtoo
-        xbps-install:void
-        yum:centos,rhel
-    "
-
-    # Check working package managers first
-    for pm_info in $pkg_managers; do
-        pm=$(echo "$pm_info" | cut -d: -f1)
-        if cmd_exists "$pm"; then
-            echo "$pm ✓" && return
-        fi
-    done
-
-    # Fallback: detect by distribution
-    local distro_id=""
+    # Test both existence AND functionality in one go
+    command -v apt &>/dev/null && apt --version &>/dev/null && echo "apt ✓" && return
+    command -v dnf &>/dev/null && dnf --version &>/dev/null && echo "dnf ✓" && return
+    command -v yum &>/dev/null && yum --version &>/dev/null && echo "yum ✓" && return
+    command -v zypper &>/dev/null && zypper --version &>/dev/null && echo "zypper ✓" && return
+    command -v pacman &>/dev/null && pacman --version &>/dev/null && echo "pacman ✓" && return
+    command -v apk &>/dev/null && apk --version &>/dev/null && echo "apk ✓" && return
+    command -v emerge &>/dev/null && emerge --version &>/dev/null && echo "emerge ✓" && return
+    command -v xbps-install &>/dev/null && xbps-install --version &>/dev/null && echo "xbps ✓" && return
+    command -v nix-env &>/dev/null && nix-env --version &>/dev/null && echo "nix ✓" && return
+    command -v eopkg &>/dev/null && eopkg --version &>/dev/null && echo "eopkg ✓" && return
+    command -v swupd &>/dev/null && swupd --version &>/dev/null && echo "swupd ✓" && return
+    command -v installpkg &>/dev/null && echo "installpkg ✓" && return
+    command -v urpmi &>/dev/null && urpmi --version &>/dev/null && echo "urpmi ✓" && return
+    command -v pisi &>/dev/null && pisi --version &>/dev/null && echo "pisi ✓" && return
+    command -v cast &>/dev/null && echo "cast ✓" && return
+    command -v prt-get &>/dev/null && echo "prt-get ✓" && return
+    command -v Compile &>/dev/null && echo "Compile ✓" && return
+    command -v tce-load &>/dev/null && echo "tce ✓" && return
+    command -v petget &>/dev/null && echo "petget ✓" && return
+    command -v guix &>/dev/null && guix --version &>/dev/null && echo "guix ✓" && return
+    
+    # Fallback: detect by distro but mark as broken since commands failed
     if [ -f /etc/os-release ]; then
-        distro_id=$(grep '^ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
+        case "$(grep '^ID=' /etc/os-release | cut -d= -f2 | tr -d '"')" in
+            ubuntu|debian|mint|kali|pop|elementary|zorin|mx|deepin|parrot|tails|raspbian|devuan) echo "apt ✗" ;;
+            fedora|rhel|centos|rocky|alma|oracle|scientific|amazonlinux) 
+                # Check for microdnf as fallback for dnf
+                if command -v microdnf &>/dev/null && microdnf --help &>/dev/null; then
+                    echo "dnf ✗ → microdnf ✓"
+                else
+                    echo "dnf ✗"
+                fi
+                ;;
+            opensuse*|sles|sled) echo "zypper ✗" ;;
+            arch|manjaro|endeavouros|artix|garuda|blackarch) echo "pacman ✗" ;;
+            alpine|postmarket) echo "apk ✗" ;;
+            gentoo|funtoo|calculate|sabayon) echo "emerge ✗" ;;
+            void) echo "xbps ✗" ;;
+            nixos) echo "nix ✗" ;;
+            solus) echo "eopkg ✗" ;;
+            clear-linux-os) echo "swupd ✗" ;;
+            slackware) echo "installpkg ✗" ;;
+            mageia|openmandriva) echo "urpmi ✗" ;;
+            pardus) echo "pisi ✗" ;;
+            guix) echo "guix ✗" ;;
+            *) echo "unknown ✗" ;;
+        esac
+    else
+        echo "unknown ✗"
     fi
-
-    case "$distro_id" in
-        ubuntu|debian|mint|kali|pop|elementary) echo "apt ✗" ;;
-        fedora|rhel|centos|rocky|alma) echo "dnf ✗" ;;
-        arch|manjaro|endeavouros|artix) echo "pacman ✗" ;;
-        opensuse*|sles) echo "zypper ✗" ;;
-        alpine|postmarket) echo "apk ✗" ;;
-        gentoo|funtoo) echo "emerge ✗" ;;
-        void) echo "xbps ✗" ;;
-        *) echo "unknown" ;;
-    esac
 }
 
 # Init System Detection
