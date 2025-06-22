@@ -35,49 +35,14 @@ check_privileges() {
     fi
 }
 
-# Download script with curl/wget fallback
+# Download script
 download_script() {
-    local output_path="$1"
-    local success=0
-    
-    # Clean up any existing file first
-    rm -f "$output_path" 2>/dev/null
-    
-    # Try curl first
-    if command -v curl >/dev/null 2>&1; then
-        if curl -sSL "$REPO_URL" -o "$output_path" 2>/dev/null; then
-            # Verify file was created and has content
-            if [ -f "$output_path" ] && [ -s "$output_path" ]; then
-                success=1
-            else
-                rm -f "$output_path" 2>/dev/null
-            fi
-        fi
-    fi
-    
-    # Fallback to wget if curl failed
-    if [ "$success" -eq 0 ] && command -v wget >/dev/null 2>&1; then
-        if wget -qO "$output_path" "$REPO_URL" 2>/dev/null; then
-            # Verify file was created and has content
-            if [ -f "$output_path" ] && [ -s "$output_path" ]; then
-                success=1
-            else
-                rm -f "$output_path" 2>/dev/null
-            fi
-        fi
-    fi
-    
-    # Check if download was successful
-    if [ "$success" -eq 1 ]; then
-        return 0
-    else
-        show_error "Download failed - check internet connection"
-        return 1
-    fi
+    curl -sSL "$REPO_URL" -o "$1" 2>/dev/null
 }
 
 # Main menu
 show_menu() {
+    clear
     printf "\n"
     printf "$WHITE%s$NC\n" "System Info Script Installer"
     printf "$GRAY%s$NC\n" "────────────────────────────────────────"
@@ -95,16 +60,10 @@ show_menu() {
 install_quick_test() {
     printf "\n"
     if download_script "$TEMP_PATH"; then
-        if [ -f "$TEMP_PATH" ] && [ -s "$TEMP_PATH" ]; then
-            chmod +x "$TEMP_PATH" 2>/dev/null
-            printf "\n"
-            if ! "$TEMP_PATH" 2>/dev/null; then
-                sh "$TEMP_PATH" 2>/dev/null || show_error "Script execution failed"
-            fi
-            rm -f "$TEMP_PATH" 2>/dev/null
-        else
-            show_error "Download failed"
-        fi
+        chmod +x "$TEMP_PATH" 2>/dev/null
+        printf "\n"
+        "$TEMP_PATH"
+        rm -f "$TEMP_PATH" 2>/dev/null
     else
         show_error "Download failed"
     fi
@@ -115,20 +74,26 @@ install_command_tool() {
     check_privileges
     
     if download_script "/tmp/sysinfo-temp"; then
-        if [ -f "/tmp/sysinfo-temp" ] && [ -s "/tmp/sysinfo-temp" ]; then
-            if ${SUDO} mv "/tmp/sysinfo-temp" "$BIN_PATH" 2>/dev/null && ${SUDO} chmod +x "$BIN_PATH" 2>/dev/null; then
-                show_success "Installed as 'sysinfo' command"
-                printf "\n"
-                if ! "$BIN_PATH" 2>/dev/null; then
-                    sh "$BIN_PATH" 2>/dev/null || show_error "Script execution failed"
-                fi
-            else
-                show_error "Installation failed"
-                rm -f "/tmp/sysinfo-temp" 2>/dev/null
-            fi
+        # Fix shebang for compatibility
+        if command -v bash >/dev/null 2>&1; then
+            BASH_PATH=$(command -v bash)
         else
-            show_error "Download failed"
+            BASH_PATH="/bin/sh"
         fi
+        
+        # Create the final script with correct shebang
+        printf "#!%s\n" "$BASH_PATH" > "/tmp/sysinfo-fixed"
+        tail -n +2 "/tmp/sysinfo-temp" >> "/tmp/sysinfo-fixed"
+        
+        if ${SUDO} mv "/tmp/sysinfo-fixed" "$BIN_PATH" 2>/dev/null && ${SUDO} chmod +x "$BIN_PATH" 2>/dev/null; then
+            show_success "Installed as 'sysinfo' command"
+            printf "\n"
+            "$BIN_PATH"
+        else
+            show_error "Installation failed"
+            rm -f "/tmp/sysinfo-fixed" 2>/dev/null
+        fi
+        rm -f "/tmp/sysinfo-temp" 2>/dev/null
     else
         show_error "Download failed"
     fi
@@ -139,19 +104,13 @@ install_auto_start() {
     check_privileges
     
     if download_script "/tmp/profile-temp"; then
-        if [ -f "/tmp/profile-temp" ] && [ -s "/tmp/profile-temp" ]; then
-            if ${SUDO} mv "/tmp/profile-temp" "$PROFILE_PATH" 2>/dev/null && ${SUDO} chmod +x "$PROFILE_PATH" 2>/dev/null; then
-                show_success "Installed to $PROFILE_PATH"
-                printf "\n"
-                if ! "$PROFILE_PATH" 2>/dev/null; then
-                    sh "$PROFILE_PATH" 2>/dev/null || show_error "Script execution failed"
-                fi
-            else
-                show_error "Installation failed"
-                rm -f "/tmp/profile-temp" 2>/dev/null
-            fi
+        if ${SUDO} mv "/tmp/profile-temp" "$PROFILE_PATH" 2>/dev/null && ${SUDO} chmod +x "$PROFILE_PATH" 2>/dev/null; then
+            show_success "Installed to $PROFILE_PATH"
+            printf "\n"
+            "$PROFILE_PATH"
         else
-            show_error "Download failed"
+            show_error "Installation failed"
+            rm -f "/tmp/profile-temp" 2>/dev/null
         fi
     else
         show_error "Download failed"
@@ -193,7 +152,7 @@ get_choice() {
 
 # Cleanup on exit
 cleanup() {
-    rm -f "$TEMP_PATH" "/tmp/sysinfo-temp" "/tmp/profile-temp" 2>/dev/null
+    rm -f "$TEMP_PATH" "/tmp/sysinfo-temp" "/tmp/profile-temp" "/tmp/sysinfo-fixed" 2>/dev/null
 }
 
 trap cleanup EXIT
