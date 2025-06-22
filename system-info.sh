@@ -90,7 +90,7 @@ get_pkg_mgr() {
             ubuntu|debian|mint|kali|pop|elementary|zorin|mx|deepin|parrot|tails|raspbian|devuan) echo "apt ✗" ;;
             fedora|rhel|centos|rocky|alma|oracle|scientific|amazonlinux) 
                 # Check for microdnf as fallback for dnf
-                if command -v microdnf &>/dev/null && microdnf --hell &>/dev/null; then
+                if command -v microdnf &>/dev/null && microdnf --help &>/dev/null; then
                     echo "dnf ✗ → microdnf ✓"
                 else
                     echo "dnf ✗"
