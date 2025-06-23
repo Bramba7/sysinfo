@@ -1,4 +1,5 @@
-#!/bin/shMore actions
+#!/bin/sh
+# More actions
 # Production System Information Display Script
 # Compatible with POSIX shell - works on minimal containers
 
