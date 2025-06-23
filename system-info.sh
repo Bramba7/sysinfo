@@ -225,46 +225,53 @@ get_timezone() {
 }
 
 # Local IP Detection
+# get_local_ip: discover the host’s primary IPv4 address
 get_local_ip() {
-    if cmd_available ip; then
-        # Try common interface names and default route
-        for method in \
-            "ip -4 addr show eth0" \
-            "ip -4 addr show ens" \
-            "ip route get 1.1.1.1"; do
-
-            local ip
-            case "$method" in
-                *"route get"*)
-                    ip=$($method 2>/dev/null | grep -o 'src [0-9.]*' | cut -d' ' -f2)
-                    ;;
-                *)
-                    ip=$($method 2>/dev/null | grep 'inet ' | head -n1 | sed 's/.*inet \([^/]*\).*/\1/')
-                    ;;
-            esac
-
-            if [ -n "$ip" ] && [ "$ip" != "127.0.0.1" ]; then
-                echo "$ip" && return
-            fi
-        done
-
-        # Last resort: any non-localhost IP
-        ip=$(ip -4 addr show 2>/dev/null | grep 'inet ' | grep -v '127.0.0.1' | head -n1 | sed 's/.*inet \([^/]*\).*/\1/')
-        [ -n "$ip" ] && echo "$ip" && return
+    # 1) Ensure ‘ip’ is available
+    if ! command -v ip >/dev/null 2>&1; then
+        echo "iproute2 required" >&2
+        return 1
     fi
 
-    # Fallback to hostname if available
-    if cmd_available hostname; then
-        local ip=$(hostname -i 2>/dev/null | cut -d' ' -f1)
-        if [ -n "$ip" ] && [ "$ip" != "127.0.0.1" ]; then
-            echo "$ip" && return
+    local ip
+
+    # 2) Try the default route—most reliable
+    ip=$(ip route get 1.1.1.1 2>/dev/null | awk '/src/ {print $NF; exit}')
+    if [[ -n "$ip" && "$ip" != "127.0.0.1" ]]; then
+        echo "$ip"
+        return 0
+    fi
+
+    # 3) Scan all up, non-loopback interfaces—in case no default route
+    #    Uses /sys for portability (works on most Linux kernels)
+    for iface in /sys/class/net/*; do
+        iface=${iface##*/}
+        [[ "$iface" == lo ]] && continue
+        # only consider ‘UP’ interfaces
+        if [[ "$(cat /sys/class/net/$iface/operstate 2>/dev/null)" != "up" ]]; then
+            continue
+        fi
+        ip=$(ip -4 addr show dev "$iface" 2>/dev/null \
+             | awk '/inet /{sub(/\/.*/,"",$2); print $2; exit}')
+        if [[ -n "$ip" ]]; then
+            echo "$ip"
+            return 0
+        fi
+    done
+
+    # 4) Fallback to hostname -i
+    if command -v hostname >/dev/null 2>&1; then
+        ip=$(hostname -i 2>/dev/null | awk '{print $1}')
+        if [[ -n "$ip" && "$ip" != "127.0.0.1" ]]; then
+            echo "$ip"
+            return 0
         fi
     fi
 
-    echo "missing iproute2"
-    echo "iproute2"
+    # 5) Give up
+    echo "no valid IPv4 found" >&2
+    return 1
 }
-
 # Public IP Detection
 get_public_ip() {
     local ip=""
