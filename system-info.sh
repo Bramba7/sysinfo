@@ -133,7 +133,8 @@ get_hostname() {
 # Package Manager Detection
 get_pkg_mgr() {
     # Test both existence AND functionality in one go
-    command -v apt &>/dev/null && apt --version &>/dev/null && echo "apt ✓" && return
+    command -v apt >/dev/null 2>&1 && apt --version >/dev/null 2>&1 && echo "apt ✓" && return
+   # command -v apt &>/dev/null && apt --version &>/dev/null && echo "apt ✓" && return
     command -v dnf &>/dev/null && dnf --version &>/dev/null && echo "dnf ✓" && return
     command -v yum &>/dev/null && yum --version &>/dev/null && echo "yum ✓" && return
     command -v zypper &>/dev/null && zypper --version &>/dev/null && echo "zypper ✓" && return
