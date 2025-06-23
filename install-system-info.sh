@@ -35,10 +35,22 @@ check_privileges() {
     fi
 }
 
-# Download script
 download_script() {
-    curl -sSL "$REPO_URL" -o "$1" 2>/dev/null
+    local output_file="$1"
+    
+    # Try curl first, then wget
+    if command -v curl >/dev/null 2>&1 && curl -sSL "$REPO_URL" -o "$output_file" 2>/dev/null; then
+        return 0
+    elif command -v wget >/dev/null 2>&1 && wget -q "$REPO_URL" -O "$output_file" 2>/dev/null; then
+        return 0
+    else
+        echo "Error: Failed to download with both curl and wget"
+        return 1
+    fi
 }
+
+
+
 
 # Main menu
 show_menu() {
