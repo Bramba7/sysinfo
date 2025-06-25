@@ -134,6 +134,7 @@ get_hostname() {
 get_pkg_mgr() {
     # Test both existence AND functionality in one go
     command -v apt >/dev/null 2>&1 && apt --version >/dev/null 2>&1 && echo "apt ✓" && return
+    command -v brew >/dev/null 2>&1 && brew --version >/dev/null 2>&1 && echo "brew ✓" && return
     command -v dnf &>/dev/null 2>&1 && dnf --version &>/dev/null 2>&1 && echo "dnf ✓" && return
     command -v yum &>/dev/null 2>&1 && yum --version &>/dev/null 2>&1 && echo "yum ✓" && return
     command -v zypper &>/dev/null 2>&1 && zypper --version &>/dev/null 2>&1 && echo "zypper ✓" && return
@@ -329,14 +330,14 @@ get_os_version() {
 display_system_info() {
     printf "\n"
     printf "${WHITE}%s - %s${NC}\n" "$(get_os_name)" "$(get_environment)"
-    printf "    ${YELLOW}🖥️${NC}  ${ORANGE}Version:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_os_version)"
-    printf "    ${YELLOW}🏠${NC}  ${ORANGE}Hostname:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_hostname)"
-    printf "    ${YELLOW}👤${NC}  ${ORANGE}User:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(whoami)"
-    printf "    ${YELLOW}📦${NC}  ${ORANGE}Package:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_pkg_mgr)"
-    printf "    ${YELLOW}⚙️${NC}  ${ORANGE}Services:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_init_system)"
-    printf "    ${YELLOW}🌍${NC}  ${ORANGE}Timezone:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_timezone)"
-    printf "    ${YELLOW}💡${NC}  ${ORANGE}Local IP:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_local_ip)"
-    printf "    ${YELLOW}🌐${NC}  ${ORANGE}Public IP:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_public_ip)"
+    printf "    ${YELLOW}🖥️${NC}\t${ORANGE}Version:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_os_version)"
+    printf "    ${YELLOW}🏠${NC}\t${ORANGE}Hostname:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_hostname)"
+    printf "    ${YELLOW}👤${NC}\t${ORANGE}User:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(whoami)"
+    printf "    ${YELLOW}📦${NC}\t${ORANGE}Package:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_pkg_mgr)"
+    printf "    ${YELLOW}⚙️${NC}\t${ORANGE}Services:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_init_system)"
+    printf "    ${YELLOW}🌍${NC}\t${ORANGE}Timezone:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_timezone)"
+    printf "    ${YELLOW}💡${NC}\t${ORANGE}Local IP:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_local_ip)"
+    printf "    ${YELLOW}🌐${NC}\t${ORANGE}Public IP:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_public_ip)"
     printf "\n"
 }
 
