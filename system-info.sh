@@ -287,8 +287,8 @@ get_local_ip() {
     fi
 
     # 5) Give up
-    echo -e "${RED}Local IP: Not found. Install 'iproute2' (ip), 'net-tools' (ifconfig), or use 'hostname'${NC}" >&2
-    return 1
+    echo "${WHITE}* Install 'iproute2' (ip), 'net-tools' (ifconfig)${NC}" >&2
+    return 0
 }
 
 # Public IP Detection
