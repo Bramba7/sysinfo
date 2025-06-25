@@ -287,7 +287,7 @@ get_local_ip() {
     fi
 
     # 5) Give up
-    echo "${WHITE}* Install 'iproute2' (ip), 'net-tools' (ifconfig)${NC}" >&2
+    printf "${WHITE}* Install 'iproute2' (ip), 'net-tools' (ifconfig)${NC}"
     return 0
 }
 
