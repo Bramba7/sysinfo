@@ -240,34 +240,32 @@ get_local_ip() {
     fi
 
     local ip
-
-    # Try extracting IPs from ifconfig across interfaces
-    # Exclude 'lo' (loopback) and consider only active interfaces
-    while IFS= read -r line; do
+    # List interfaces, excluding loopback
+    ifconfig -a | grep -E '^[a-zA-Z0-9]+' | while IFS= read -r line; do
         iface=$(echo "$line" | awk -F: '{print $1}')
-        [[ "$iface" == "lo" ]] && continue
+        [ "$iface" = "lo" ] && continue
         if ifconfig "$iface" 2>/dev/null | grep -q "inet "; then
             ip=$(ifconfig "$iface" 2>/dev/null | awk '/inet / && $2 != "127.0.0.1" {print $2; exit}')
-            if [[ -n "$ip" && "$ip" != "127.0.0.1" ]]; then
+            if [ -n "$ip" ] && [ "$ip" != "127.0.0.1" ]; then
                 echo "$ip"
-                return 0
+                exit 0
             fi
         fi
-    done < <(ifconfig -a | grep -E '^[a-zA-Z0-9]+')
-
-    # Fallback: Try hostname -i
+    done
+    # Fallback: hostname -i
     if command -v hostname >/dev/null 2>&1; then
         ip=$(hostname -i 2>/dev/null | awk '{print $1}')
-        if [[ -n "$ip" && "$ip" != "127.0.0.1" ]]; then
+        if [ -n "$ip" ] && [ "$ip" != "127.0.0.1" ]; then
             echo "$ip"
             return 0
         fi
     fi
 
-    # Final Fallback
+    # Final fallback
     echo "no valid IPv4 found" >&2
     return 1
 }
+
 
 # Public IP Detection
 get_public_ip() {
