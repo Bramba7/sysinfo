@@ -233,39 +233,51 @@ get_timezone() {
 
 # Local IP Detection
 get_local_ip() {
-    # 1) Ensure ifconfig is available
-    if ! command -v ifconfig >/dev/null 2>&1; then
-        echo "ifconfig required" >&2
-        return 1
-    fi
+    local ip
 
-    local ip iface interfaces
-
-    # 2) Gather all interface names (skip line wraps, etc.)
-    interfaces=$(ifconfig -a 2>/dev/null | awk -F: '/^[[:alnum:]]/ {print $1}')
-
-    # 3) Loop through them in the current shell
-    for iface in $interfaces; do
-        [ "$iface" = "lo" ] && continue
-
-        # Only consider interfaces that are “UP”
-        status=$(ifconfig "$iface" 2>/dev/null | awk '/status:/ {print $2}')
-        # On some systems “status: active”, others don’t have it – so skip only if “down”
-        if [ -n "$status" ] && [ "$status" != "active" ] && [ "$status" != "up" ]; then
-            continue
-        fi
-
-        # Extract the first non-loopback IPv4
-        ip=$(ifconfig "$iface" 2>/dev/null \
-             | awk '/inet / && $2 != "127.0.0.1" {print $2; exit}')
-
+    # 1) Try hostname -I (Preferred in many Linux distros)
+    if command -v hostname >/dev/null 2>&1; then
+        ip=$(hostname -I 2>/dev/null | awk '{print $1}')
         if [ -n "$ip" ] && [ "$ip" != "127.0.0.1" ]; then
             echo "$ip"
             return 0
         fi
-    done
+    fi
 
-    # 4) Fallback: hostname -i
+    # 2) Try ip (iproute2)
+    if command -v ip >/dev/null 2>&1; then
+        ip=$(ip -4 addr show scope global \
+            | awk '/inet / && $2 !~ /^127\./ {split($2,a,"/"); print a[1]; exit}')
+        if [ -n "$ip" ]; then
+            echo "$ip"
+            return 0
+        fi
+    fi
+
+    # 3) Try ifconfig
+    if command -v ifconfig >/dev/null 2>&1; then
+        local iface interfaces status
+        interfaces=$(ifconfig -a 2>/dev/null | awk -F: '/^[[:alnum:]]/ {print $1}')
+
+        for iface in $interfaces; do
+            [ "$iface" = "lo" ] && continue
+
+            status=$(ifconfig "$iface" 2>/dev/null | awk '/status:/ {print $2}')
+            if [ -n "$status" ] && [ "$status" != "active" ] && [ "$status" != "up" ]; then
+                continue
+            fi
+
+            ip=$(ifconfig "$iface" 2>/dev/null \
+                | awk '/inet / && $2 != "127.0.0.1" {print $2; exit}')
+
+            if [ -n "$ip" ] && [ "$ip" != "127.0.0.1" ]; then
+                echo "$ip"
+                return 0
+            fi
+        done
+    fi
+
+    # 4) Final Fallback: hostname -i
     if command -v hostname >/dev/null 2>&1; then
         ip=$(hostname -i 2>/dev/null | awk '{print $1}')
         if [ -n "$ip" ] && [ "$ip" != "127.0.0.1" ]; then
