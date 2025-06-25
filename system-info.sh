@@ -192,6 +192,12 @@ get_init_system() {
     if cmd_exists systemctl; then
         echo "systemctl ✓" && return
     fi
+    
+    # Darwin-specific init detection
+    if cmd_exists systemsetup; then
+        echo "systemsetup ✓" && return
+    fi
+   
 
     # Check other init systems
     if [ -f /sbin/openrc ] || cmd_available rc-service; then
