@@ -287,7 +287,7 @@ get_local_ip() {
     fi
 
     # 5) Give up
-    echo "no valid IPv4 found" >&2
+    echo -e "${RED}Local IP: Not found. Install 'iproute2' (ip), 'net-tools' (ifconfig), or use 'hostname'${NC}" >&2
     return 1
 }
 
