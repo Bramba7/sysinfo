@@ -232,41 +232,30 @@ get_timezone() {
 }
 
 # Local IP Detection
-# get_local_ip: discover the host’s primary IPv4 address
 get_local_ip() {
-    # 1) Ensure ‘ip’ is available
-    if ! command -v ip >/dev/null 2>&1; then
-        echo "iproute2 required" >&2
+    # Ensure ifconfig is available
+    if ! command -v ifconfig >/dev/null 2>&1; then
+        echo "ifconfig required" >&2
         return 1
     fi
 
     local ip
 
-    # 2) Try the default route—most reliable
-    ip=$(ip route get 1.1.1.1 2>/dev/null | awk '/src/ {print $NF; exit}')
-    if [[ -n "$ip" && "$ip" != "127.0.0.1" ]]; then
-        echo "$ip"
-        return 0
-    fi
-
-    # 3) Scan all up, non-loopback interfaces—in case no default route
-    #    Uses /sys for portability (works on most Linux kernels)
-    for iface in /sys/class/net/*; do
-        iface=${iface##*/}
-        [[ "$iface" == lo ]] && continue
-        # only consider ‘UP’ interfaces
-        if [[ "$(cat /sys/class/net/$iface/operstate 2>/dev/null)" != "up" ]]; then
-            continue
+    # Try extracting IPs from ifconfig across interfaces
+    # Exclude 'lo' (loopback) and consider only active interfaces
+    while IFS= read -r line; do
+        iface=$(echo "$line" | awk -F: '{print $1}')
+        [[ "$iface" == "lo" ]] && continue
+        if ifconfig "$iface" 2>/dev/null | grep -q "inet "; then
+            ip=$(ifconfig "$iface" 2>/dev/null | awk '/inet / && $2 != "127.0.0.1" {print $2; exit}')
+            if [[ -n "$ip" && "$ip" != "127.0.0.1" ]]; then
+                echo "$ip"
+                return 0
+            fi
         fi
-        ip=$(ip -4 addr show dev "$iface" 2>/dev/null \
-             | awk '/inet /{sub(/\/.*/,"",$2); print $2; exit}')
-        if [[ -n "$ip" ]]; then
-            echo "$ip"
-            return 0
-        fi
-    done
+    done < <(ifconfig -a | grep -E '^[a-zA-Z0-9]+')
 
-    # 4) Fallback to hostname -i
+    # Fallback: Try hostname -i
     if command -v hostname >/dev/null 2>&1; then
         ip=$(hostname -i 2>/dev/null | awk '{print $1}')
         if [[ -n "$ip" && "$ip" != "127.0.0.1" ]]; then
@@ -275,10 +264,11 @@ get_local_ip() {
         fi
     fi
 
-    # 5) Give up
+    # Final Fallback
     echo "no valid IPv4 found" >&2
     return 1
 }
+
 # Public IP Detection
 get_public_ip() {
     local ip=""
