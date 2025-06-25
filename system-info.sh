@@ -233,26 +233,39 @@ get_timezone() {
 
 # Local IP Detection
 get_local_ip() {
-    # Ensure ifconfig is available
+    # 1) Ensure ifconfig is available
     if ! command -v ifconfig >/dev/null 2>&1; then
         echo "ifconfig required" >&2
         return 1
     fi
 
-    local ip
-    # List interfaces, excluding loopback
-    ifconfig -a | grep -E '^[a-zA-Z0-9]+' | while IFS= read -r line; do
-        iface=$(echo "$line" | awk -F: '{print $1}')
+    local ip iface interfaces
+
+    # 2) Gather all interface names (skip line wraps, etc.)
+    interfaces=$(ifconfig -a 2>/dev/null | awk -F: '/^[[:alnum:]]/ {print $1}')
+
+    # 3) Loop through them in the current shell
+    for iface in $interfaces; do
         [ "$iface" = "lo" ] && continue
-        if ifconfig "$iface" 2>/dev/null | grep -q "inet "; then
-            ip=$(ifconfig "$iface" 2>/dev/null | awk '/inet / && $2 != "127.0.0.1" {print $2; exit}')
-            if [ -n "$ip" ] && [ "$ip" != "127.0.0.1" ]; then
-                echo "$ip"
-                exit 0
-            fi
+
+        # Only consider interfaces that are “UP”
+        status=$(ifconfig "$iface" 2>/dev/null | awk '/status:/ {print $2}')
+        # On some systems “status: active”, others don’t have it – so skip only if “down”
+        if [ -n "$status" ] && [ "$status" != "active" ] && [ "$status" != "up" ]; then
+            continue
+        fi
+
+        # Extract the first non-loopback IPv4
+        ip=$(ifconfig "$iface" 2>/dev/null \
+             | awk '/inet / && $2 != "127.0.0.1" {print $2; exit}')
+
+        if [ -n "$ip" ] && [ "$ip" != "127.0.0.1" ]; then
+            echo "$ip"
+            return 0
         fi
     done
-    # Fallback: hostname -i
+
+    # 4) Fallback: hostname -i
     if command -v hostname >/dev/null 2>&1; then
         ip=$(hostname -i 2>/dev/null | awk '{print $1}')
         if [ -n "$ip" ] && [ "$ip" != "127.0.0.1" ]; then
@@ -261,11 +274,10 @@ get_local_ip() {
         fi
     fi
 
-    # Final fallback
+    # 5) Give up
     echo "no valid IPv4 found" >&2
     return 1
 }
-
 
 # Public IP Detection
 get_public_ip() {
