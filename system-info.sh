@@ -296,7 +296,14 @@ get_public_ip() {
        echo "curl/wget needed" && return
    fi
 
-   [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && echo "$ip" || echo "network unavailable"
+   # Use POSIX-compatible regex test
+   case "$ip" in
+       *[!0-9.]*) echo "network unavailable" ;;
+       *.*.*.*)
+           echo "$ip" | grep -q '^[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}$' && echo "$ip" || echo "network unavailable"
+           ;;
+       *) echo "network unavailable" ;;
+   esac
 }
 
 # OS Information
