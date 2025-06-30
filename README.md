@@ -45,10 +45,10 @@ Ubuntu 22.04 - Docker
     🏠  Hostname: web-server
     👤  User: ubuntu
     📦  Package: apt ✓
-    ⚙️  Services: systemctl ✓
-    🌍  Timezone: UTC
-    💡  Local IP: 172.17.0.2
-    🌐  Public IP: 203.0.113.1
+    📋  Services: systemctl ✓
+    ⏱️  Timezone: UTC
+    📍  Local IP: 172.17.0.2
+    🌍  Public IP: 203.0.113.1
 ```
 
 ## Requirements
