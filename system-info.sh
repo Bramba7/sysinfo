@@ -283,38 +283,20 @@ get_local_ip() {
 
 # Public IP Detection
 get_public_ip() {
-    local ip=""
-    local services="ipinfo.io/ip ipconfig.io api.ipify.org"
+   # Check for curl or wget
+   if command -v curl &>/dev/null; then
+       local ip=$(timeout 2 curl -s https://ipinfo.io/ip 2>/dev/null ||
+                  timeout 2 curl -s https://ifconfig.io 2>/dev/null ||
+                  timeout 2 curl -s https://api.ipify.org 2>/dev/null)
+   elif command -v wget &>/dev/null; then
+       local ip=$(timeout 2 wget -qO- https://ipinfo.io/ip 2>/dev/null ||
+                  timeout 2 wget -qO- https://ifconfig.io 2>/dev/null ||
+                  timeout 2 wget -qO- https://api.ipify.org 2>/dev/null)
+   else
+       echo "curl/wget needed" && return
+   fi
 
-    # Try curl first
-    if cmd_available curl; then
-        for service in $services; do
-            ip=$(curl -s --max-time 3 "https://$service" 2>/dev/null)
-            [ -n "$ip" ] && break
-        done
-    # Fallback to wget
-    elif cmd_available wget; then
-        for service in $services; do
-            ip=$(wget -qO- --timeout=3 "https://$service" 2>/dev/null)
-            [ -n "$ip" ] && break
-        done
-    else
-        echo "curl/wget needed" && return
-    fi
-
-    # Validate IP format (simple but effective)
-    case "$ip" in
-        *[!0-9.]*) echo "network unavailable" ;;
-        *.*.*.*)
-            # Basic IP validation
-            if echo "$ip" | grep -q '^[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}$'; then
-                echo "$ip"
-            else
-                echo "network unavailable"
-            fi
-            ;;
-        *) echo "network unavailable" ;;
-    esac
+   [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && echo "$ip" || echo "network unavailable"
 }
 
 # OS Information
