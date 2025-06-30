@@ -284,18 +284,18 @@ get_local_ip() {
 # Public IP Detection
 get_public_ip() {
    # Check for curl or wget
-   if command -v curl &>/dev/null; then
+   if command -v curl >/dev/null; then
        local ip=$(timeout 2 curl -s https://ipinfo.io/ip 2>/dev/null ||
                   timeout 2 curl -s https://ifconfig.io 2>/dev/null ||
                   timeout 2 curl -s https://api.ipify.org 2>/dev/null)
-   elif command -v wget &>/dev/null; then
+   elif command -v wget >/dev/null; then
        local ip=$(timeout 2 wget -qO- https://ipinfo.io/ip 2>/dev/null ||
                   timeout 2 wget -qO- https://ifconfig.io 2>/dev/null ||
                   timeout 2 wget -qO- https://api.ipify.org 2>/dev/null)
    else
        echo "curl/wget needed" && return
    fi
-
+   
    # Use POSIX-compatible regex test
    case "$ip" in
        *[!0-9.]*) echo "network unavailable" ;;
