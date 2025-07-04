@@ -222,6 +222,14 @@ get_init_system() {
 get_timezone() {
     safe_read /etc/timezone && return
 
+    # OpenWrt zonename from /etc/config/system
+    if [ -f /etc/config/system ]; then
+        zonename=$(grep "option zonename" /etc/config/system | awk -F"'" '{print $2}')
+        if [ -n "$zonename" ]; then
+            echo "$zonename"
+            return
+        fi
+    fi
     if [ -L /etc/localtime ]; then
         readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||' && return
     fi
