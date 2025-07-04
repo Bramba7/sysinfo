@@ -134,6 +134,7 @@ get_hostname() {
 get_pkg_mgr() {
     # Test both existence AND functionality in one go
     command -v apt >/dev/null 2>&1 && apt --version >/dev/null 2>&1 && echo "apt ✓" && return
+    command -v opkg >/dev/null 2>&1 && opkg --version >/dev/null 2>&1 && echo "opkg ✓" && return
     command -v brew >/dev/null 2>&1 && brew --version >/dev/null 2>&1 && echo "brew ✓" && return
     command -v dnf &>/dev/null 2>&1 && dnf --version &>/dev/null 2>&1 && echo "dnf ✓" && return
     command -v yum &>/dev/null 2>&1 && yum --version &>/dev/null 2>&1 && echo "yum ✓" && return
@@ -172,6 +173,7 @@ get_pkg_mgr() {
             alpine|postmarket) echo "apk ✗" ;;
             gentoo|funtoo|calculate|sabayon) echo "emerge ✗" ;;
             void) echo "xbps ✗" ;;
+            openwrt) echo "opkg ✗" ;;
             nixos) echo "nix ✗" ;;
             solus) echo "eopkg ✗" ;;
             clear-linux-os) echo "swupd ✗" ;;
