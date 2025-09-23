@@ -194,12 +194,12 @@ get_init_system() {
     if cmd_exists systemctl; then
         echo "systemctl ✓" && return
     fi
-    
+
     # Darwin-specific init detection
     if cmd_exists systemsetup; then
         echo "systemsetup ✓" && return
     fi
-    
+
     # Check for procd (OpenWrt)
     if [ -d /etc/init.d ] && grep -q "procd" /sbin/init 2>/dev/null; then
         echo "procd" && return
@@ -212,6 +212,11 @@ get_init_system() {
 
     if cmd_available service; then
         echo "service" && return
+    fi
+
+    # Check for runit
+    if cmd_exists runsv || [ "$(safe_read /proc/1/comm)" = "runsv" ]; then
+        echo "runsv (runit)" && return
     fi
 
     # Fallback based on PID 1
