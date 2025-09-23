@@ -328,7 +328,13 @@ get_os_name() {
         uname -s 2>/dev/null || echo "Unknown"
     fi
 }
-
+get_user(){
+    if [ -z "$USER" ]; then
+        echo "root"
+    else
+        echo "$USER"
+    fi
+}
 get_os_version() {
     if [ -f /etc/os-release ]; then
         grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"'
@@ -343,7 +349,7 @@ display_system_info() {
     printf "${WHITE}%s - %s${NC}\n" "$(get_os_name)" "$(get_environment)"
     printf "    ${YELLOW}💻${NC}\t${ORANGE}Version:${NC}   ${BRIGHT_GREEN}%s${NC}\n" "$(get_os_version)"
     printf "    ${YELLOW}🏠${NC}\t${ORANGE}Hostname:${NC}  ${BRIGHT_GREEN}%s${NC}\n" "$(get_hostname)"
-    printf "    ${YELLOW}👤${NC}\t${ORANGE}User:${NC}      ${BRIGHT_GREEN}%s${NC}\n" "$USER"
+    printf "    ${YELLOW}👤${NC}\t${ORANGE}User:${NC}      ${BRIGHT_GREEN}%s${NC}\n" "$(get_user)"
     printf "    ${YELLOW}📦${NC}\t${ORANGE}Package:${NC}   ${BRIGHT_GREEN}%s${NC}\n" "$(get_pkg_mgr)"
     printf "    ${YELLOW}📋${NC}\t${ORANGE}Services:${NC}  ${BRIGHT_GREEN}%s${NC}\n" "$(get_init_system)"
     printf "    ${YELLOW}🕐${NC}\t${ORANGE}Timezone:${NC}  ${BRIGHT_GREEN}%s${NC}\n" "$(get_timezone)"
