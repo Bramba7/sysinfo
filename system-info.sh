@@ -215,7 +215,7 @@ get_init_system() {
     fi
 
     # Check for runit
-    if [ -x /usr/bin/runsv ] || [ -x /sbin/runsv ]; then
+    if [ -x /usr/bin/runsv ] ||[ -x /bin/runsv ] || [ -x /sbin/runsv ]; then
         echo "runit" && return
     fi
 
