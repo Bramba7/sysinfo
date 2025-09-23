@@ -215,8 +215,8 @@ get_init_system() {
     fi
 
     # Check for runit
-    if cmd_exists runsv || [ "$(safe_read /proc/1/comm)" = "runsv" ]; then
-        echo "runsv (runit)" && return
+    if [ -x /usr/bin/runsv ] || [ -x /sbin/runsv ]; then
+        echo "runit" && return
     fi
 
     # Fallback based on PID 1
