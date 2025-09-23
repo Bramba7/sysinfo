@@ -347,7 +347,7 @@ display_system_info() {
     printf "    ${YELLOW}📦${NC}\t${ORANGE}Package:${NC}   ${BRIGHT_GREEN}%s${NC}\n" "$(get_pkg_mgr)"
     printf "    ${YELLOW}📋${NC}\t${ORANGE}Services:${NC}  ${BRIGHT_GREEN}%s${NC}\n" "$(get_init_system)"
     printf "    ${YELLOW}⏱️${NC}\t${ORANGE}Timezone:${NC}  ${BRIGHT_GREEN}%s${NC}\n" "$(get_timezone)"
-    printf "    ${YELLOW}📍${NC}\t${ORANGE}Local IP:${NC}  ${BRIGHT_GREEN}%s${NC}\n"  "$(get_local_ip)"
+    printf "    ${YELLOW}📍${NC}\t${ORANGE}Local IP:${NC}  ${BRIGHT_GREEN}%s${NC}\n" "$(get_local_ip)"
     printf "    ${YELLOW}🌍${NC}\t${ORANGE}Public IP:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$(get_public_ip)"
     printf "\n"
 }
