@@ -257,8 +257,16 @@ get_local_ip() {
             return 0
         fi
     fi
-    
-    # 2) Try ifconfig
+    # 2) Try ip (iproute2)
+    if command -v ip >/dev/null 2>&1; then
+        ip=$(ip -4 addr show scope global \
+            | awk '/inet / && $2 !~ /^127\./ {split($2,a,"/"); print a[1]; exit}')
+        if [ -n "$ip" ]; then
+            echo "$ip"
+            return 0
+        fi
+    fi    
+    # 3) Try ifconfig
     if command -v ifconfig >/dev/null 2>&1; then
         local iface interfaces status
         interfaces=$(ifconfig -a 2>/dev/null | awk -F: '/^[[:alnum:]]/ {print $1}')
@@ -280,15 +288,7 @@ get_local_ip() {
             fi
         done
     fi
-    # 3) Try ip (iproute2)
-    if command -v ip >/dev/null 2>&1; then
-        ip=$(ip -4 addr show scope global \
-            | awk '/inet / && $2 !~ /^127\./ {split($2,a,"/"); print a[1]; exit}')
-        if [ -n "$ip" ]; then
-            echo "$ip"
-            return 0
-        fi
-    fi
+
 
     # 5) Give up
     echo "* Install 'iproute2' (ip), 'net-tools' (ifconfig)"
