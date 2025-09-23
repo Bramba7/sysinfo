@@ -244,12 +244,11 @@ get_timezone() {
 
     echo "${TZ:-UTC}"
 }
-
-# Local IP Detection
+# Local IP
 get_local_ip() {
     local ip
 
-    # 1) Try hostname -I (Preferred in many Linux distros)
+    # 1) Try hostname -I
     if command -v hostname >/dev/null 2>&1; then
         ip=$(hostname -I 2>/dev/null | awk '{print $1}')
         if [ -n "$ip" ] && [ "$ip" != "127.0.0.1" ]; then
@@ -257,6 +256,7 @@ get_local_ip() {
             return 0
         fi
     fi
+
     # 2) Try ip (iproute2)
     if command -v ip >/dev/null 2>&1; then
         ip=$(ip -4 addr show scope global \
@@ -289,11 +289,36 @@ get_local_ip() {
         done
     fi
 
+    # 4) Fallback: parse /proc/net/fib_trie without awk
+    if [ -r /proc/net/fib_trie ]; then
+        prev=""
+        while IFS= read -r line; do
+            case "$line" in
+                *"/32 host LOCAL"*)
+                    # Extract IP from previous line using shell builtins
+                    set -- $prev
+                    for word in "$@"; do
+                        case $word in
+                            127.*) ;;  # skip loopback
+                            ?*.*.*.*)
+                                ip="$word"
+                                echo "$ip"
+                                return 0
+                                ;;
+                        esac
+                    done
+                    ;;
+            esac
+            prev="$line"
+        done < /proc/net/fib_trie
+    fi
+
 
     # 5) Give up
     echo "* Install 'iproute2' (ip), 'net-tools' (ifconfig)"
-    return 0
+    return 1
 }
+
 
 # Public IP Detection
 get_public_ip() {
@@ -324,7 +349,16 @@ get_public_ip() {
 get_os_name() {
     if [ -f /etc/os-release ]; then
         grep '^NAME=' /etc/os-release | cut -d= -f2 | tr -d '"'
+    elif command -v busybox >/dev/null 2>&1; then
+        echo "BusyBox"
+    elif command -v apk >/dev/null 2>&1; then
+        echo "Alpine Linux"
+    elif command -v dpkg >/dev/null 2>&1; then
+        echo "Debian-based"
+    elif command -v rpm >/dev/null 2>&1; then
+        echo "RPM-based"
     else
+        # Fallback
         uname -s 2>/dev/null || echo "Unknown"
     fi
 }
@@ -337,8 +371,13 @@ get_user(){
 }
 get_os_version() {
     if [ -f /etc/os-release ]; then
+        # Standard distros
         grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"'
+    elif command -v busybox >/dev/null 2>&1; then
+        # BusyBox version
+        busybox | head -n1 | awk '{print $2}'   # prints version like v1.36.1
     else
+        # fallback to kernel version
         uname -r 2>/dev/null || echo "Unknown"
     fi
 }
