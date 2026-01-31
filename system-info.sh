@@ -132,42 +132,126 @@ get_hostname() {
 
 # Package Manager Detection
 get_pkg_mgr() {
-    # Test both existence AND functionality in one go
-    command -v apt >/dev/null 2>&1 && apt --version >/dev/null 2>&1 && echo "apt ✓" && return
-    command -v opkg >/dev/null 2>&1 && opkg --version >/dev/null 2>&1 && echo "opkg ✓" && return
-    command -v brew >/dev/null 2>&1 && brew --version >/dev/null 2>&1 && echo "brew ✓" && return
-    command -v dnf >/dev/null 2>&1 && dnf --version >/dev/null 2>&1 && echo "dnf ✓" && return
-    command -v yum >/dev/null 2>&1 && yum --version >/dev/null 2>&1 && echo "yum ✓" && return
-    command -v zypper >/dev/null 2>&1 && zypper --version >/dev/null 2>&1 && echo "zypper ✓" && return
-    command -v pacman >/dev/null 2>&1 && pacman --version >/dev/null 2>&1 && echo "pacman ✓" && return
-    command -v apk >/dev/null 2>&1 && apk --version >/dev/null 2>&1 && echo "apk ✓" && return
-    command -v emerge >/dev/null 2>&1 && emerge --version >/dev/null 2>&1 && echo "emerge ✓" && return
-    command -v xbps-install >/dev/null 2>&1 && xbps-install --version >/dev/null 2>&1 && echo "xbps ✓" && return
-    command -v nix-env >/dev/null 2>&1 && nix-env --version >/dev/null 2>&1 && echo "nix ✓" && return
-    command -v eopkg >/dev/null 2>&1 && eopkg --version >/dev/null 2>&1 && echo "eopkg ✓" && return
-    command -v swupd >/dev/null 2>&1 && swupd --version >/dev/null 2>&1 && echo "swupd ✓" && return
-    command -v installpkg >/dev/null 2>&1 && echo "installpkg ✓" 2>&1 && return
-    command -v urpmi >/dev/null 2>&1 && urpmi --version >/dev/null 2>&1 && echo "urpmi ✓" && return
-    command -v pisi >/dev/null 2>&1 && pisi --version >/dev/null 2>&1 && echo "pisi ✓" && return
-    command -v cast >/dev/null 2>&1 && echo "cast ✓" 2>&1 && return
-    command -v prt-get >/dev/null 2>&1 && echo "prt-get ✓" 2>&1 && return
-    command -v Compile >/dev/null 2>&1 && echo "Compile ✓" 2>&1 && return
-    command -v tce-load >/dev/null 2>&1 && echo "tce ✓" 2>&1 && return
-    command -v petget >/dev/null 2>&1 && echo "petget ✓" 2>&1 && return
-    command -v guix >/dev/null 2>&1 && guix --version >/dev/null 2>&1 && echo "guix ✓" && return
+    local pkg_managers=""
+    local found_any=0
+    
+    # Test both existence AND functionality, collect all available
+    if command -v apt >/dev/null 2>&1 && apt --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}apt ✓, "
+        found_any=1
+    fi
+    if command -v nala >/dev/null 2>&1 && nala --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}nala ✓, "
+        found_any=1
+    fi
+    if command -v flatpak >/dev/null 2>&1 && flatpak --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}flatpak ✓, "
+        found_any=1
+    fi
+    if command -v snap >/dev/null 2>&1 && snap version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}snap ✓, "
+        found_any=1
+    fi
+    if command -v opkg >/dev/null 2>&1 && opkg --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}opkg ✓, "
+        found_any=1
+    fi
+    if command -v brew >/dev/null 2>&1 && brew --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}brew ✓, "
+        found_any=1
+    fi
+    if command -v dnf >/dev/null 2>&1 && dnf --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}dnf ✓, "
+        found_any=1
+    fi
+    if command -v yum >/dev/null 2>&1 && yum --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}yum ✓, "
+        found_any=1
+    fi
+    if command -v zypper >/dev/null 2>&1 && zypper --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}zypper ✓, "
+        found_any=1
+    fi
+    if command -v pacman >/dev/null 2>&1 && pacman --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}pacman ✓, "
+        found_any=1
+    fi
+    if command -v apk >/dev/null 2>&1 && apk --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}apk ✓, "
+        found_any=1
+    fi
+    if command -v emerge >/dev/null 2>&1 && emerge --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}emerge ✓, "
+        found_any=1
+    fi
+    if command -v xbps-install >/dev/null 2>&1 && xbps-install --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}xbps ✓, "
+        found_any=1
+    fi
+    if command -v nix-env >/dev/null 2>&1 && nix-env --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}nix ✓, "
+        found_any=1
+    fi
+    if command -v eopkg >/dev/null 2>&1 && eopkg --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}eopkg ✓, "
+        found_any=1
+    fi
+    if command -v swupd >/dev/null 2>&1 && swupd --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}swupd ✓, "
+        found_any=1
+    fi
+    if command -v installpkg >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}installpkg ✓, "
+        found_any=1
+    fi
+    if command -v urpmi >/dev/null 2>&1 && urpmi --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}urpmi ✓, "
+        found_any=1
+    fi
+    if command -v pisi >/dev/null 2>&1 && pisi --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}pisi ✓, "
+        found_any=1
+    fi
+    if command -v cast >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}cast ✓, "
+        found_any=1
+    fi
+    if command -v prt-get >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}prt-get ✓, "
+        found_any=1
+    fi
+    if command -v Compile >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}Compile ✓, "
+        found_any=1
+    fi
+    if command -v tce-load >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}tce ✓, "
+        found_any=1
+    fi
+    if command -v petget >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}petget ✓, "
+        found_any=1
+    fi
+    if command -v guix >/dev/null 2>&1 && guix --version >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}guix ✓, "
+        found_any=1
+    fi
+    if command -v microdnf >/dev/null 2>&1 && microdnf --help >/dev/null 2>&1; then
+        pkg_managers="${pkg_managers}microdnf ✓, "
+        found_any=1
+    fi
+    
+    # If we found working package managers, return them (remove trailing comma and space)
+    if [ $found_any -eq 1 ]; then
+        echo "$pkg_managers" | sed 's/, $//'
+        return
+    fi
     
     # Fallback: detect by distro but mark as broken since commands failed
     if [ -f /etc/os-release ]; then
         case "$(grep '^ID=' /etc/os-release | cut -d= -f2 | tr -d '"')" in
             ubuntu|debian|mint|kali|pop|elementary|zorin|mx|deepin|parrot|tails|raspbian|devuan) echo "apt ✗" ;;
-            fedora|rhel|centos|rocky|alma|oracle|scientific|amazonlinux) 
-                # Check for microdnf as fallback for dnf
-                if command -v microdnf >/dev/null && microdnf --help >/dev/null; then
-                    echo "dnf ✗ → microdnf ✓"
-                else
-                    echo "dnf ✗"
-                fi
-                ;;
+            fedora|rhel|centos|rocky|alma|oracle|scientific|amazonlinux) echo "dnf ✗, yum ✗" ;;
             opensuse*|sles|sled) echo "zypper ✗" ;;
             arch|manjaro|endeavouros|artix|garuda|blackarch) echo "pacman ✗" ;;
             alpine|postmarket) echo "apk ✗" ;;
